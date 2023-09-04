@@ -4,21 +4,34 @@ import requests
 from pptx import Presentation
 from pptx.util import Inches
 from io import BytesIO
+import os
 
-# OpenAI API密钥
-openai.api_key = 'YOUR_OPENAI_API_KEY'
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv())
+
+openai.api_key  = os.getenv('OPENAI_API_KEY')
 
 # Unsplash API的URL
-UNSPLASH_URL = "https://api.unsplash.com/photos/random?query={}&client_id=YOUR_UNSPLASH_API_KEY"
+# UNSPLASH_URL = "https://api.unsplash.com/photos/random?query={}&client_id=YOUR_UNSPLASH_API_KEY"
 
+def get_completion(prompt, model="gpt-3.5-turbo-16k"):
+    print(openai.api_key)
+    messages = [{"role":"user", "content": prompt}]
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=messages,
+        temperature=0
+    )
+    return response.choices[0].message["content"]
+
+prompt = f"""
+Generate an outline of a PowerPoint based on the text delimited by triple backticks \ 
+into a single sentence.
+```{text}```
+"""
 def generate_ppt(prompt):
     # 使用OpenAI API获取提纲
-    response = openai.Completion.create(
-      engine="davinci",
-      prompt=prompt,
-      max_tokens=150
-    )
-    outline = response.choices[0].text.strip().split('\n')
+    outline = get_completion(prompt)
 
     # 创建PPT
     prs = Presentation()
@@ -28,13 +41,13 @@ def generate_ppt(prompt):
         title.text = point
 
         # 从Unsplash获取图片
-        response = requests.get(UNSPLASH_URL.format(point))
-        image_url = response.json()["urls"]["small"]
-        image = requests.get(image_url).content
-        image_stream = BytesIO(image)
+        # response = requests.get(UNSPLASH_URL.format(point))
+        # image_url = response.json()["urls"]["small"]
+        # image = requests.get(image_url).content
+        # image_stream = BytesIO(image)
 
-        # 添加图片到PPT
-        slide.shapes.add_picture(image_stream, Inches(1), Inches(1), width=Inches(4))
+        # # 添加图片到PPT
+        # slide.shapes.add_picture(image_stream, Inches(1), Inches(1), width=Inches(4))
 
     # 保存PPT到文件
     ppt_file = "generated_ppt.pptx"
